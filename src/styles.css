@@ -12,6 +12,23 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+  margin: 0px;
+  padding: 0px;
+  height: 100%;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0px;
+  height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 .container {
@@ -21,17 +38,6 @@
   flex-direction: column;
   justify-content: center;
   text-align: center;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: 0.75s;
-}
-
-.logo.tauri:hover {
-  filter: drop-shadow(0 0 2em #24c8db);
 }
 
 .row {
@@ -84,8 +90,8 @@ button {
   outline: none;
 }
 
-#greet-input {
-  margin-right: 5px;
+#app {
+  height: 100%;
 }
 
 @media (prefers-color-scheme: dark) {
