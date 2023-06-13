@@ -10,6 +10,7 @@ const update = debounce((e) => {
 
 </script>
 
+
 <template>
 	<div class="editor">
 		<textarea class="input" :value="content" @input="update"></textarea>
