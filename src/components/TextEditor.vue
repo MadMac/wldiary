@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { store } from '../store/store.js'
 import { debounce } from 'lodash-es'
 
-const content = ref("");
-
 const update = debounce((e) => {
-	content.value = e.target.value
+	store.update_content(e.target.value);
 }, 100)
 
 </script>
@@ -13,7 +12,7 @@ const update = debounce((e) => {
 
 <template>
 	<div class="editor">
-		<textarea class="input" :value="content" @input="update"></textarea>
+		<textarea class="input" v-model="store.active_log.content" @input="update"></textarea>
 	</div>
 </template>
 

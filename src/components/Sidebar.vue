@@ -1,15 +1,20 @@
 <script setup lang="ts">
 import { invoke } from '@tauri-apps/api'
+import { store } from '../store/store.js'
+import { Log } from '../models/models'
 
 invoke('get_log_dates', {})
-	.then((response) => console.log(response))
+	.then((response) => {
+		store.set_logs(response as Log[]);
+		console.log(store.all_logs);
+	})
 
 </script>
 
 <template>
 	<div id="sidebar">
-		<div class="sidebar-item">
-			2023-01-01
+		<div class="sidebar-item" v-for="log in store.all_logs" @click="store.select_dailylog(log)">
+			{{ log.log_date }}
 		</div>
 	</div>
 </template>
