@@ -35,6 +35,19 @@ fn get_log_dates() -> Vec<DailyLog> {
     return all_daily_logs;
 }
 
+#[tauri::command]
+fn update_daily_log(daily_log: DailyLog) {
+    use self::schema::daily_logs::dsl::*;
+
+    let conn = &mut establish_connection();
+    debug!("Saving log: {:?}", daily_log);
+
+    diesel::update(daily_logs.filter(id.eq(&daily_log.id)))
+        .set((content.eq(daily_log.content.to_owned()),))
+        .execute(conn)
+        .unwrap();
+}
+
 fn main() {
     env_logger::init_from_env(env_logger::Env::default().default_filter_or("debug"));
 
@@ -44,7 +57,7 @@ fn main() {
 
     info!("Starting Tauri backend.");
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_log_dates])
+        .invoke_handler(tauri::generate_handler![get_log_dates, update_daily_log])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

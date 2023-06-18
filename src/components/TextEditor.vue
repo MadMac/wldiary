@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { invoke } from '@tauri-apps/api'
 import { store } from '../store/store.js'
 import { debounce } from 'lodash-es'
 
@@ -7,12 +7,20 @@ const update = debounce((e) => {
 	store.update_content(e.target.value);
 }, 100)
 
+const savecontent = debounce((e) => {
+	console.log(e)
+	invoke('update_daily_log', { dailyLog: store.active_log })
+		.then((response) => {
+			console.log("Done");
+		})
+}, 1000)
+
 </script>
 
 
 <template>
 	<div class="editor">
-		<textarea class="input" v-model="store.active_log.content" @input="update"></textarea>
+		<textarea class="input" v-model="store.active_log.content" @input="update" @keyup="savecontent"></textarea>
 	</div>
 </template>
 
