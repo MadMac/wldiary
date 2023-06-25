@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -9,5 +10,5 @@ use crate::schema::daily_logs;
 pub struct DailyLog {
     pub id: String,
     pub content: String,
-    pub log_date: String,
+    pub log_date: NaiveDate,
 }

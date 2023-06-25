@@ -3,6 +3,8 @@
 
 extern crate diesel;
 
+use chrono::{DateTime, NaiveDate, Utc};
+use diesel::dsl::today;
 use diesel::prelude::*;
 use diesel::{Connection, SqliteConnection};
 use diesel_migrations::EmbeddedMigrations;
@@ -17,7 +19,6 @@ mod schema;
 
 use self::models::DailyLog;
 
-// Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
 fn get_log_dates() -> Vec<DailyLog> {
     use self::schema::daily_logs::dsl::*;
@@ -25,12 +26,15 @@ fn get_log_dates() -> Vec<DailyLog> {
     let conn = &mut establish_connection();
 
     debug!("Getting log dates");
-    let all_daily_logs: Vec<DailyLog> = daily_logs
+    let mut all_daily_logs: Vec<DailyLog> = daily_logs
         .select(DailyLog::as_select())
         .load(conn)
         .expect("Expected to get all daily logs");
 
     debug!("{:?}", all_daily_logs);
+
+    // Sort logs by date
+    all_daily_logs.sort_by(|a, b| b.log_date.cmp(&a.log_date));
 
     return all_daily_logs;
 }
@@ -48,6 +52,33 @@ fn update_daily_log(daily_log: DailyLog) {
         .unwrap();
 }
 
+#[tauri::command]
+fn add_today_date() -> Option<DailyLog> {
+    use self::schema::daily_logs::dsl::*;
+
+    let now: NaiveDate = Utc::now().date_naive();
+
+    let conn = &mut establish_connection();
+
+    debug!("Check if today already exists");
+    let today_log: Vec<DailyLog> = daily_logs
+        .select(DailyLog::as_select())
+        .filter(log_date.eq(now))
+        .load(conn)
+        .expect("Expected to get daily log");
+
+    debug!("{:?}", today_log);
+
+    match today_log.first() {
+        Some(log) => {
+            return Some(log.clone());
+        }
+        None => {
+            return None;
+        }
+    }
+}
+
 fn main() {
     env_logger::init_from_env(env_logger::Env::default().default_filter_or("debug"));
 
@@ -57,7 +88,11 @@ fn main() {
 
     info!("Starting Tauri backend.");
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_log_dates, update_daily_log])
+        .invoke_handler(tauri::generate_handler![
+            get_log_dates,
+            update_daily_log,
+            add_today_date
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
