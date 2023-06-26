@@ -3,14 +3,7 @@ import { invoke } from '@tauri-apps/api'
 import { store } from '../store/store.js'
 import { Log } from '../models/models'
 
-const update_sidebar = () => {
-	invoke('get_log_dates', {})
-		.then((response) => {
-			store.set_logs(response as Log[]);
-			console.log(store.all_logs);
-		})
-};
-update_sidebar();
+store.update_store();
 
 const add_today_date = () => {
 	invoke('add_today_date', {})
@@ -21,7 +14,7 @@ const add_today_date = () => {
 			}
 		});
 
-	update_sidebar();
+	store.update_store();
 }
 
 </script>
@@ -31,7 +24,8 @@ const add_today_date = () => {
 		<div class="sidebar-item" id="add-item" @click="add_today_date()">
 			+
 		</div>
-		<div class="sidebar-item" v-for="log in store.all_logs" @click="store.select_dailylog(log)">
+		<div class="sidebar-item" v-for="log in store.all_logs" @click="store.select_dailylog(log)"
+			:class="{ 'active-item': log.id === store.active_log.id }">
 			{{ log.log_date }}
 		</div>
 	</div>
@@ -76,5 +70,11 @@ const add_today_date = () => {
 
 .sidebar-item:hover {
 	background-color: #3f3f3f;
+}
+
+.active-item {
+	/* background-color: #3a3a3a; */
+	background-color: #242424;
+	font-weight: 700;
 }
 </style>

@@ -10,6 +10,7 @@ use diesel::{Connection, SqliteConnection};
 use diesel_migrations::EmbeddedMigrations;
 use diesel_migrations::{embed_migrations, MigrationHarness};
 use log::{debug, info};
+use uuid::Uuid;
 use wldiary::establish_connection;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
@@ -74,7 +75,18 @@ fn add_today_date() -> Option<DailyLog> {
             return Some(log.clone());
         }
         None => {
-            return None;
+            let new_today_log = DailyLog {
+                id: Uuid::new_v4().to_string(),
+                content: String::new(),
+                log_date: now,
+            };
+
+            diesel::insert_into(daily_logs)
+                .values(&new_today_log)
+                .execute(conn)
+                .unwrap();
+
+            return Some(new_today_log);
         }
     }
 }
