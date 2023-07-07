@@ -54,6 +54,18 @@ fn update_daily_log(daily_log: DailyLog) {
 }
 
 #[tauri::command]
+fn delete_daily_log(daily_log: DailyLog) {
+    use self::schema::daily_logs::dsl::*;
+
+    let conn = &mut establish_connection();
+    debug!("Deleting log: {:?}", daily_log);
+
+    diesel::delete(daily_logs.filter(id.eq(&daily_log.id)))
+        .execute(conn)
+        .unwrap();
+}
+
+#[tauri::command]
 fn add_today_date() -> Option<DailyLog> {
     use self::schema::daily_logs::dsl::*;
 
@@ -103,7 +115,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             get_log_dates,
             update_daily_log,
-            add_today_date
+            add_today_date,
+            delete_daily_log
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

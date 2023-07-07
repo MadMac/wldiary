@@ -2,6 +2,10 @@
 import { invoke } from '@tauri-apps/api'
 import { store } from '../store/store.js'
 import { Log } from '../models/models'
+// @ts-ignore  
+import { TrashIcon } from '@heroicons/vue/24/solid'
+import { appWindow } from '@tauri-apps/api/window'
+import { confirm } from '@tauri-apps/api/dialog'
 
 store.update_store();
 
@@ -17,6 +21,19 @@ const add_today_date = () => {
 	store.update_store();
 }
 
+const delete_log = async (daily_log: Log) => {
+	const deleteConfirmed = await confirm('Are you sure you want to delete the log?');
+
+	if (deleteConfirmed === true) {
+		invoke('delete_daily_log', { dailyLog: daily_log })
+			.then((response) => {
+				console.log(response)
+				store.update_store();
+			});
+	}
+	console.log(daily_log);
+}
+
 </script>
 
 <template>
@@ -27,6 +44,9 @@ const add_today_date = () => {
 		<div class="sidebar-item" v-for="log in store.all_logs" @click="store.select_dailylog(log)"
 			:class="{ 'active-item': log.id === store.active_log.id }">
 			{{ log.log_date }}
+			<div class="trash-icon-container" @click.stop="delete_log(log)">
+				<TrashIcon />
+			</div>
 		</div>
 	</div>
 </template>
@@ -49,6 +69,7 @@ const add_today_date = () => {
 	overflow-y: scroll;
 }
 
+
 #sidebar:focus {
 	outline: none !important;
 }
@@ -59,6 +80,23 @@ const add_today_date = () => {
 	font-size: 1.8em;
 }
 
+
+.trash-icon-container {
+	width: 25px;
+	height: 25px;
+	float: right;
+	margin-right: 20px;
+	padding: 3px;
+	vertical-align: middle;
+	text-align: center;
+	border-radius: 25px;
+	z-index: -1;
+}
+
+.trash-icon-container:hover {
+	background-color: #8d8d8d;
+}
+
 .sidebar-item {
 	width: 100%;
 	height: 60px;
@@ -66,6 +104,7 @@ const add_today_date = () => {
 	cursor: pointer;
 	padding-top: 17px;
 	padding-left: 15px;
+	overflow: hidden;
 }
 
 .sidebar-item:hover {
