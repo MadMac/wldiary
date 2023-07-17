@@ -3,9 +3,8 @@ import { invoke } from '@tauri-apps/api'
 import { store } from '../store/store.js'
 import { Log } from '../models/models'
 // @ts-ignore  
-import { TrashIcon } from '@heroicons/vue/24/solid'
-import { appWindow } from '@tauri-apps/api/window'
-import { confirm } from '@tauri-apps/api/dialog'
+import { TrashIcon, FolderIcon } from '@heroicons/vue/24/solid'
+import { confirm, open } from '@tauri-apps/api/dialog'
 
 store.update_store();
 
@@ -34,6 +33,21 @@ const delete_log = async (daily_log: Log) => {
 	console.log(daily_log);
 }
 
+const open_file_chooser = async () => {
+	console.log("Open file chooser");
+	const openDatabase = await open({
+		filters: [{
+			name: 'Database',
+			extensions: ['db']
+		}]
+	});
+
+	// TODO: Make sure the database is valid
+	// Do migration if empty?
+
+	console.log(openDatabase);
+}
+
 </script>
 
 <template>
@@ -47,6 +61,9 @@ const delete_log = async (daily_log: Log) => {
 			<div class="trash-icon-container" @click.stop="delete_log(log)">
 				<TrashIcon />
 			</div>
+		</div>
+		<div class="load-icon-container" @click="open_file_chooser()">
+			<FolderIcon />
 		</div>
 	</div>
 </template>
@@ -80,6 +97,19 @@ const delete_log = async (daily_log: Log) => {
 	font-size: 1.8em;
 }
 
+.load-icon-container {
+	width: 25px;
+	height: 25px;
+	position: absolute;
+	bottom: 10px;
+	left: 10px;
+	padding: 3px;
+	border-radius: 10px;
+}
+
+.load-icon-container:hover {
+	background-color: #8d8d8d;
+}
 
 .trash-icon-container {
 	width: 25px;

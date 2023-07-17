@@ -3,15 +3,19 @@
 
 extern crate diesel;
 
-use chrono::{DateTime, NaiveDate, Utc};
-use diesel::dsl::today;
+use chrono::{NaiveDate, Utc};
 use diesel::prelude::*;
 use diesel::{Connection, SqliteConnection};
 use diesel_migrations::EmbeddedMigrations;
 use diesel_migrations::{embed_migrations, MigrationHarness};
 use log::{debug, info};
+use schematic::{ConfigLoadResult, ConfigLoader};
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::Path;
 use uuid::Uuid;
 use wldiary::establish_connection;
+use wldiary::AppConfig;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
@@ -103,8 +107,49 @@ fn add_today_date() -> Option<DailyLog> {
     }
 }
 
+#[tauri::command]
+async fn load_db_file(file_path: String) -> () {}
+
+struct ConfigState(AppConfig);
+
 fn main() {
     env_logger::init_from_env(env_logger::Env::default().default_filter_or("debug"));
+
+    let mut app_config: ConfigLoadResult<AppConfig>;
+
+    // Check or create config file
+    if !Path::new("config.json").exists() {
+        info!("Config doesn't exist. Creating new config file.");
+
+        let new_app_config = AppConfig {
+            log_path: "log_files.db".to_string(),
+        };
+
+        let path = Path::new("config.json");
+
+        let mut file = match File::create(&path) {
+            Err(err) => panic!("Couldn't create config file {}", err),
+            Ok(file) => file,
+        };
+
+        match file.write_all(serde_json::to_string(&new_app_config).unwrap().as_bytes()) {
+            Err(err) => panic!("Couldn't write to config file {}", err),
+            Ok(_) => info!("Successfully created config file"),
+        }
+    } else {
+        info!("Config file found.")
+    }
+
+    let app_config = match ConfigLoader::<AppConfig>::new()
+        .file("config.json")
+        .unwrap()
+        .load()
+    {
+        Err(err) => panic!("Couldn't open config file {}", err.to_full_string()),
+        Ok(config) => config,
+    };
+
+    debug!("Config: {:?}", app_config.config);
 
     info!("Running migrations.");
     let mut conn = SqliteConnection::establish("log_files.db").unwrap();
@@ -112,6 +157,7 @@ fn main() {
 
     info!("Starting Tauri backend.");
     tauri::Builder::default()
+        .manage(ConfigState(app_config.config))
         .invoke_handler(tauri::generate_handler![
             get_log_dates,
             update_daily_log,

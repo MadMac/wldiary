@@ -22,6 +22,7 @@ log = "0.4.0"
 env_logger = "0.8.4"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
+schematic = { version = "0.11.0", features = ["json_schema"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
