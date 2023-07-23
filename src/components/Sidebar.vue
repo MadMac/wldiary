@@ -42,10 +42,12 @@ const open_file_chooser = async () => {
 		}]
 	});
 
+	invoke('load_db_file', { filePath: openDatabase })
 	// TODO: Make sure the database is valid
 	// Do migration if empty?
 
 	console.log(openDatabase);
+	store.update_store();
 }
 
 </script>

@@ -9,13 +9,15 @@ use diesel::{Connection, SqliteConnection};
 use diesel_migrations::EmbeddedMigrations;
 use diesel_migrations::{embed_migrations, MigrationHarness};
 use log::{debug, info};
-use schematic::{ConfigLoadResult, ConfigLoader};
+use schematic::ConfigLoader;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+use std::sync::Mutex;
 use uuid::Uuid;
 use wldiary::establish_connection;
 use wldiary::AppConfig;
+use wldiary::AppState;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
@@ -25,10 +27,12 @@ mod schema;
 use self::models::DailyLog;
 
 #[tauri::command]
-fn get_log_dates() -> Vec<DailyLog> {
+fn get_log_dates(config: tauri::State<ConfigState>) -> Vec<DailyLog> {
     use self::schema::daily_logs::dsl::*;
 
-    let conn = &mut establish_connection();
+    debug!("{:?}", &config.0.config.lock().unwrap());
+
+    let conn = &mut establish_connection(&config.0.config.lock().unwrap());
 
     debug!("Getting log dates");
     let mut all_daily_logs: Vec<DailyLog> = daily_logs
@@ -45,10 +49,12 @@ fn get_log_dates() -> Vec<DailyLog> {
 }
 
 #[tauri::command]
-fn update_daily_log(daily_log: DailyLog) {
+fn update_daily_log(daily_log: DailyLog, config: tauri::State<ConfigState>) {
     use self::schema::daily_logs::dsl::*;
 
-    let conn = &mut establish_connection();
+    debug!("{:?}", &config.0.config.lock().unwrap());
+
+    let conn = &mut establish_connection(&config.0.config.lock().unwrap());
     debug!("Saving log: {:?}", daily_log);
 
     diesel::update(daily_logs.filter(id.eq(&daily_log.id)))
@@ -58,10 +64,10 @@ fn update_daily_log(daily_log: DailyLog) {
 }
 
 #[tauri::command]
-fn delete_daily_log(daily_log: DailyLog) {
+fn delete_daily_log(daily_log: DailyLog, config: tauri::State<ConfigState>) {
     use self::schema::daily_logs::dsl::*;
 
-    let conn = &mut establish_connection();
+    let conn = &mut establish_connection(&config.0.config.lock().unwrap());
     debug!("Deleting log: {:?}", daily_log);
 
     diesel::delete(daily_logs.filter(id.eq(&daily_log.id)))
@@ -70,12 +76,14 @@ fn delete_daily_log(daily_log: DailyLog) {
 }
 
 #[tauri::command]
-fn add_today_date() -> Option<DailyLog> {
+fn add_today_date(config: tauri::State<ConfigState>) -> Option<DailyLog> {
     use self::schema::daily_logs::dsl::*;
+
+    debug!("{:?}", &config.0.config.lock().unwrap());
 
     let now: NaiveDate = Utc::now().date_naive();
 
-    let conn = &mut establish_connection();
+    let conn = &mut establish_connection(&config.0.config.lock().unwrap());
 
     debug!("Check if today already exists");
     let today_log: Vec<DailyLog> = daily_logs
@@ -108,14 +116,16 @@ fn add_today_date() -> Option<DailyLog> {
 }
 
 #[tauri::command]
-async fn load_db_file(file_path: String) -> () {}
+fn load_db_file(file_path: String, config: tauri::State<ConfigState>) -> () {
+    debug!("Updating db path to: {}", file_path);
+    let mut state = config.0.config.lock().expect("Could not lock mutex");
+    state.log_path = file_path;
+}
 
-struct ConfigState(AppConfig);
+struct ConfigState(AppState);
 
 fn main() {
     env_logger::init_from_env(env_logger::Env::default().default_filter_or("debug"));
-
-    let mut app_config: ConfigLoadResult<AppConfig>;
 
     // Check or create config file
     if !Path::new("config.json").exists() {
@@ -152,17 +162,20 @@ fn main() {
     debug!("Config: {:?}", app_config.config);
 
     info!("Running migrations.");
-    let mut conn = SqliteConnection::establish("log_files.db").unwrap();
+    let mut conn = SqliteConnection::establish(&app_config.config.log_path).unwrap();
     conn.run_pending_migrations(MIGRATIONS).unwrap();
 
     info!("Starting Tauri backend.");
     tauri::Builder::default()
-        .manage(ConfigState(app_config.config))
+        .manage(ConfigState(AppState {
+            config: Mutex::new(app_config.config),
+        }))
         .invoke_handler(tauri::generate_handler![
             get_log_dates,
             update_daily_log,
             add_today_date,
-            delete_daily_log
+            delete_daily_log,
+            load_db_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
