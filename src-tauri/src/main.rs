@@ -119,7 +119,22 @@ fn add_today_date(config: tauri::State<ConfigState>) -> Option<DailyLog> {
 fn load_db_file(file_path: String, config: tauri::State<ConfigState>) -> () {
     debug!("Updating db path to: {}", file_path);
     let mut state = config.0.config.lock().expect("Could not lock mutex");
-    state.log_path = file_path;
+    state.log_path = file_path.clone();
+
+    let path = Path::new("config.json");
+    let mut file = match File::create(&path) {
+        Err(err) => panic!("Couldn't create config file {}", err),
+        Ok(file) => file,
+    };
+
+    let new_app_config = AppConfig {
+        log_path: file_path.clone(),
+    };
+
+    match file.write_all(serde_json::to_string(&new_app_config).unwrap().as_bytes()) {
+        Err(err) => panic!("Couldn't write to config file {}", err),
+        Ok(_) => info!("Successfully created config file"),
+    }
 }
 
 struct ConfigState(AppState);
