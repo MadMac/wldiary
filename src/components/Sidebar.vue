@@ -86,6 +86,7 @@ const open_file_chooser = async () => {
 	-ms-user-select: none;
 	user-select: none;
 	overflow-y: scroll;
+	font-family: 'Ubuntu Mono', monospace;
 }
 
 

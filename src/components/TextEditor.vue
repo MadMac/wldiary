@@ -2,13 +2,28 @@
 import { invoke } from '@tauri-apps/api'
 import { store } from '../store/store.js'
 import { debounce } from 'lodash-es'
+import { ref, nextTick } from 'vue'
+
+const textareaElement = ref<HTMLTextAreaElement | null>(null);
 
 const update = debounce((e) => {
 	store.update_content(e.target.value);
 }, 100)
 
+const checkKeyDown = async (e: KeyboardEvent) => {
+	if (e.key === "Tab") {
+		if (textareaElement != null && textareaElement.value != null) {
+			e.preventDefault();
+			const start = textareaElement.value.selectionStart;
+			const end = textareaElement.value.selectionEnd;
+			store.active_log.content = store.active_log.content.substring(0, start) + "    " + store.active_log.content.substring(end);
+			await nextTick() // Wait a tick so that the caret position restarts before setting it to the correct position
+			textareaElement.value.setSelectionRange(start + 4, end + 4);
+		}
+	}
+}
+
 const savecontent = debounce((e) => {
-	console.log(e)
 	invoke('update_daily_log', { dailyLog: store.active_log })
 		.then((response) => {
 			console.log("Done");
@@ -20,7 +35,8 @@ const savecontent = debounce((e) => {
 
 <template>
 	<div class="editor">
-		<textarea class="input" v-model="store.active_log.content" @input="update" @keyup="savecontent"></textarea>
+		<textarea ref="textareaElement" class="input" v-model="store.active_log.content" @input="update"
+			@keydown="checkKeyDown" @keyup="savecontent"></textarea>
 	</div>
 </template>
 
@@ -48,6 +64,9 @@ const savecontent = debounce((e) => {
 	color: #fff;
 	flex: 1;
 	font-size: 1.1em;
+	tab-size: 2em;
+	font-family: 'Ubuntu Mono', monospace;
+	font-weight: 400;
 	/* Currently makes the caret too tall */
 	/* line-height: 2em; */
 }
